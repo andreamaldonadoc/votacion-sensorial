@@ -1,0 +1,358 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<div style="font-family: var(--font-sans); color: var(--text-primary); padding: 1rem 0;">
+  <!-- Voting Panel -->
+  <div id="voting-panel" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- Left: Name + Voting Form -->
+    <div>
+      <h2 style="font-size: 18px; font-weight: 500; margin: 0 0 1.5rem; color: var(--text-primary);">Votante #<span id="votant-number">1</span></h2>
+      
+      <div style="margin-bottom: 1.5rem;">
+        <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Tu nombre (obligatorio)</label>
+        <input type="text" id="voter-name" placeholder="Ej: Juan Pérez" style="width: 100%; padding: 10px; border: 0.5px solid var(--border); border-radius: var(--radius); font-size: 16px; box-sizing: border-box; color: var(--text-primary); background: var(--surface-2);">
+      </div>
+      
+      <div id="attributes-container" style="display: flex; flex-direction: column; gap: 1.5rem;"></div>
+      
+      <button id="submit-btn" style="width: 100%; margin-top: 2rem; padding: 12px; background: var(--fill-accent); color: var(--on-accent); border: none; border-radius: var(--radius); font-weight: 500; cursor: pointer; font-size: 16px;">
+        Enviar votación
+      </button>
+    </div>
+
+    <!-- Right: Current Chart -->
+    <div>
+      <h2 style="font-size: 18px; font-weight: 500; margin: 0 0 1.5rem; color: var(--text-primary);">Tu votación (%)</h2>
+      <div id="chart-container" style="width: 100%; height: 320px; display: flex; align-items: center; justify-content: center;">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Panel -->
+  <div id="results-panel" style="margin-top: 3rem; padding-top: 2rem; border-top: 0.5px solid var(--border); display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2 style="font-size: 18px; font-weight: 500; margin: 0; color: var(--text-primary);">Votaciones registradas (<span id="vote-count">0</span>/8)</h2>
+      <button id="toggle-results" style="padding: 8px 16px; background: var(--surface-1); border: 0.5px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 14px; color: var(--text-primary);">
+        Ver resultados finales
+      </button>
+    </div>
+
+    <div id="votes-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 2rem;"></div>
+  </div>
+
+  <!-- Final Results Modal -->
+  <div id="final-results-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: var(--surface-2); border-radius: 12px; padding: 2rem; max-width: 900px; max-height: 90vh; overflow-y: auto; border: 0.5px solid var(--border); width: 90%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="font-size: 20px; font-weight: 500; margin: 0; color: var(--text-primary);">Resultados finales</h2>
+        <button id="close-results" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">✕</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <!-- Final Pie Chart -->
+        <div>
+          <h3 style="font-size: 16px; font-weight: 500; margin: 0 0 1rem; color: var(--text-primary);">Importancia promedio (%)</h3>
+          <div id="final-chart-container" style="width: 100%; height: 300px;">
+            <canvas id="finalPieChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Average Table -->
+        <div>
+          <h3 style="font-size: 16px; font-weight: 500; margin: 0 0 1rem; color: var(--text-primary);">Promedio por atributo</h3>
+          <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+            <tbody id="average-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detailed Votes Table -->
+      <div>
+        <h3 style="font-size: 16px; font-weight: 500; margin: 0 0 1rem; color: var(--text-primary);">Detalle de todas las votaciones</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 0.5px solid var(--border);">
+                <th style="text-align: left; padding: 8px; font-weight: 500; color: var(--text-primary);">Votante</th>
+                <th style="text-align: center; padding: 8px; font-weight: 500; color: var(--text-primary);">Color</th>
+                <th style="text-align: center; padding: 8px; font-weight: 500; color: var(--text-primary);">Olor</th>
+                <th style="text-align: center; padding: 8px; font-weight: 500; color: var(--text-primary);">Firmeza</th>
+                <th style="text-align: center; padding: 8px; font-weight: 500; color: var(--text-primary);">Sabor</th>
+                <th style="text-align: center; padding: 8px; font-weight: 500; color: var(--text-primary);">Humedad</th>
+              </tr>
+            </thead>
+            <tbody id="detailed-votes-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const attributes = ['Color', 'Olor', 'Firmeza', 'Sabor', 'Humedad'];
+  const colors = ['#7F77DD', '#1D9E75', '#D85A30', '#993556', '#185FA5'];
+  
+  let currentVotes = [0, 0, 0, 0, 0];
+  let allVotes = [];
+  
+  const voterNameInput = document.getElementById('voter-name');
+  const attributesContainer = document.getElementById('attributes-container');
+  const submitBtn = document.getElementById('submit-btn');
+  const chartCanvas = document.getElementById('pieChart');
+  const votesList = document.getElementById('votes-list');
+  const voteCount = document.getElementById('vote-count');
+  const votantNumber = document.getElementById('votant-number');
+  const resultsPanel = document.getElementById('results-panel');
+  const toggleResultsBtn = document.getElementById('toggle-results');
+  const finalResultsOverlay = document.getElementById('final-results-overlay');
+  const closeResultsBtn = document.getElementById('close-results');
+  
+  // Load data from localStorage
+  function loadData() {
+    const saved = localStorage.getItem('sensoryVotes');
+    if (saved) {
+      allVotes = JSON.parse(saved);
+      voteCount.textContent = allVotes.length;
+      votantNumber.textContent = allVotes.length + 1;
+      resultsPanel.style.display = 'block';
+    }
+  }
+  
+  // Create attribute sliders
+  function createAttributes() {
+    attributes.forEach((attr, idx) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+      
+      const label = document.createElement('label');
+      label.style.cssText = 'font-size: 15px; font-weight: 500; color: var(--text-primary);';
+      label.textContent = attr;
+      
+      const container = document.createElement('div');
+      container.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+      
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = '1';
+      slider.max = '5';
+      slider.value = '1';
+      slider.step = '1';
+      slider.dataset.index = idx;
+      slider.style.cssText = 'flex: 1;';
+      
+      const value = document.createElement('span');
+      value.style.cssText = 'font-weight: 500; min-width: 20px; text-align: right; font-size: 16px;';
+      value.textContent = '1';
+      
+      slider.addEventListener('input', (e) => {
+        currentVotes[idx] = parseInt(e.target.value);
+        value.textContent = e.target.value;
+        updateChart();
+      });
+      
+      container.appendChild(slider);
+      container.appendChild(value);
+      
+      div.appendChild(label);
+      div.appendChild(container);
+      attributesContainer.appendChild(div);
+    });
+  }
+  
+  // Update pie chart
+  function updateChart() {
+    const total = currentVotes.reduce((a, b) => a + b, 0);
+    const percentages = total > 0 ? currentVotes.map(v => Math.round(v / total * 100)) : [20, 20, 20, 20, 20];
+    
+    const ctx = chartCanvas.getContext('2d');
+    
+    if (window.pieChartInstance) {
+      window.pieChartInstance.data.datasets[0].data = percentages;
+      window.pieChartInstance.update();
+    } else {
+      window.pieChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: attributes,
+          datasets: [{
+            data: percentages,
+            backgroundColor: colors,
+            borderColor: 'var(--surface-2)',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 16,
+                font: { size: 13 },
+                color: 'var(--text-primary)'
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+  
+  // Submit vote
+  submitBtn.addEventListener('click', () => {
+    const name = voterNameInput.value.trim();
+    
+    if (!name) {
+      alert('Por favor, ingresa tu nombre');
+      return;
+    }
+    
+    if (currentVotes.some(v => v === 0)) {
+      alert('Por favor, asigna una puntuación a todos los atributos');
+      return;
+    }
+    
+    const vote = {
+      voterId: allVotes.length + 1,
+      name: name,
+      values: [...currentVotes],
+      timestamp: new Date().toLocaleTimeString('es-CL')
+    };
+    
+    allVotes.push(vote);
+    localStorage.setItem('sensoryVotes', JSON.stringify(allVotes));
+    
+    // Reset form
+    currentVotes = [0, 0, 0, 0, 0];
+    voterNameInput.value = '';
+    document.querySelectorAll('input[type="range"]').forEach(s => s.value = '1');
+    document.querySelectorAll('input[type="range"]').forEach((s, i) => {
+      const sliderContainer = s.parentElement;
+      const valueSpan = sliderContainer.querySelector('span');
+      if (valueSpan) valueSpan.textContent = '1';
+    });
+    
+    voteCount.textContent = allVotes.length;
+    votantNumber.textContent = allVotes.length + 1;
+    resultsPanel.style.display = 'block';
+    renderVotes();
+    updateChart();
+  });
+  
+  // Render votes in list
+  function renderVotes() {
+    votesList.innerHTML = '';
+    allVotes.forEach(vote => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background: var(--surface-1); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px; font-size: 13px;';
+      
+      const header = document.createElement('div');
+      header.style.cssText = 'font-weight: 500; margin-bottom: 8px; color: var(--text-primary);';
+      header.textContent = vote.name;
+      
+      const values = document.createElement('div');
+      values.style.cssText = 'color: var(--text-secondary); line-height: 1.6;';
+      values.innerHTML = attributes.map((attr, i) => `${attr}: ${vote.values[i]}`).join('<br>');
+      
+      card.appendChild(header);
+      card.appendChild(values);
+      votesList.appendChild(card);
+    });
+  }
+  
+  // Show final results
+  function showFinalResults() {
+    finalResultsOverlay.style.display = 'flex';
+    
+    // Calculate averages
+    const averages = [0, 0, 0, 0, 0];
+    allVotes.forEach(vote => {
+      vote.values.forEach((val, i) => {
+        averages[i] += val;
+      });
+    });
+    
+    const avgCount = allVotes.length || 1;
+    const avgPercentages = averages.map(avg => {
+      const rounded = Math.round(avg / avgCount * 100 / 5 * 100);
+      return rounded;
+    });
+    
+    // Final pie chart
+    const finalCtx = document.getElementById('finalPieChart').getContext('2d');
+    if (window.finalPieChartInstance) {
+      window.finalPieChartInstance.data.datasets[0].data = avgPercentages;
+      window.finalPieChartInstance.update();
+    } else {
+      window.finalPieChartInstance = new Chart(finalCtx, {
+        type: 'doughnut',
+        data: {
+          labels: attributes,
+          datasets: [{
+            data: avgPercentages,
+            backgroundColor: colors,
+            borderColor: 'var(--surface-2)',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 16,
+                font: { size: 13 },
+                color: 'var(--text-primary)'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Average table
+    const avgTable = document.getElementById('average-table');
+    avgTable.innerHTML = '';
+    const avgValues = averages.map(a => (a / avgCount).toFixed(2));
+    attributes.forEach((attr, i) => {
+      const row = document.createElement('tr');
+      row.style.cssText = 'border-bottom: 0.5px solid var(--border);';
+      row.innerHTML = `
+        <td style="padding: 8px; color: var(--text-primary);">${attr}</td>
+        <td style="text-align: right; padding: 8px; color: var(--text-primary); font-weight: 500;">${avgValues[i]}/5</td>
+        <td style="text-align: right; padding: 8px; color: var(--text-primary);">${avgPercentages[i]}%</td>
+      `;
+      avgTable.appendChild(row);
+    });
+    
+    // Detailed table
+    const detailedTable = document.getElementById('detailed-votes-table');
+    detailedTable.innerHTML = '';
+    allVotes.forEach(vote => {
+      const row = document.createElement('tr');
+      row.style.cssText = 'border-bottom: 0.5px solid var(--border);';
+      row.innerHTML = `
+        <td style="padding: 8px; color: var(--text-primary);">${vote.name}</td>
+        ${vote.values.map(v => `<td style="text-align: center; padding: 8px; color: var(--text-primary);">${v}</td>`).join('')}
+      `;
+      detailedTable.appendChild(row);
+    });
+  }
+  
+  toggleResultsBtn.addEventListener('click', showFinalResults);
+  closeResultsBtn.addEventListener('click', () => {
+    finalResultsOverlay.style.display = 'none';
+  });
+  
+  // Initialize
+  createAttributes();
+  loadData();
+  updateChart();
+  renderVotes();
+</script>
