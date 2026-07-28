@@ -706,9 +706,9 @@
                     adminLogoutBtn.style.display = 'inline-block';
                     adminPassword.value = '';
                     renderVotes();
-                    if (allVotes.length > 0) {
+                    setTimeout(() => {
                         showFinalResults();
-                    }
+                    }, 100);
                 } else if (pwd !== null) {
                     alert('Contraseña incorrecta');
                 }
