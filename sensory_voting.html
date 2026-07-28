@@ -246,6 +246,28 @@
         .centered {
             text-align: center;
         }
+        .admin-btn-floating {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #378add;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 100;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .admin-btn-floating:hover {
+            background: #185fa5;
+        }
         @media (max-width: 768px) {
             .voting-panel {
                 grid-template-columns: 1fr;
@@ -258,6 +280,11 @@
 </head>
 <body>
     <div class="container">
+        <!-- View Mode Toggle -->
+        <div style="margin-bottom: 2rem; display: flex; justify-content: flex-end; gap: 12px;">
+            <button id="toggle-view-btn" style="padding: 8px 16px; background: #f5f5f5; border: 1px solid #d0d0d0; border-radius: 6px; cursor: pointer; font-size: 14px; color: #1a1a1a; font-weight: 500;">Ver solo resultados</button>
+        </div>
+
         <!-- Admin Login (Hidden) -->
         <div id="admin-login" style="display: none; margin-bottom: 2rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
             <div style="display: flex; gap: 12px; margin-bottom: 1rem;">
@@ -269,7 +296,7 @@
         </div>
 
         <!-- Voting Panel -->
-        <div class="voting-panel">
+        <div class="voting-panel" id="voting-panel">
             <!-- Left: Name + Voting Form -->
             <div class="left-section">
                 <h2>Votante #<span id="votant-number">1</span></h2>
@@ -351,6 +378,9 @@
         </div>
     </div>
 
+    <!-- Admin Floating Button -->
+    <button id="admin-btn" class="admin-btn-floating" title="Acceso admin">👤</button>
+
     <script>
         const attributes = ['Color', 'Olor', 'Firmeza', 'Sabor', 'Humedad'];
         const colors = ['#7F77DD', '#1D9E75', '#D85A30', '#993556', '#185FA5'];
@@ -365,6 +395,7 @@
         const adminLoginBtn = document.getElementById('admin-login-btn');
         const adminLogoutBtn = document.getElementById('admin-logout-btn');
         const adminMessage = document.getElementById('admin-message');
+        const adminBtn = document.getElementById('admin-btn');
         
         const voterNameInput = document.getElementById('voter-name');
         const attributesContainer = document.getElementById('attributes-container');
@@ -661,6 +692,34 @@
         adminPassword.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 adminLoginBtn.click();
+            }
+        });
+        
+        // Floating admin button
+        adminBtn.addEventListener('click', () => {
+            if (!window.adminMode) {
+                const pwd = prompt('Contraseña admin:');
+                if (pwd === ADMIN_PASSWORD) {
+                    window.adminMode = true;
+                    adminLogin.style.display = 'none';
+                    adminLoginBtn.style.display = 'none';
+                    adminLogoutBtn.style.display = 'inline-block';
+                    adminPassword.value = '';
+                    renderVotes();
+                    if (allVotes.length > 0) {
+                        showFinalResults();
+                    }
+                } else if (pwd !== null) {
+                    alert('Contraseña incorrecta');
+                }
+            } else {
+                window.adminMode = false;
+                adminLogin.style.display = 'block';
+                adminLoginBtn.style.display = 'inline-block';
+                adminLogoutBtn.style.display = 'none';
+                adminPassword.value = '';
+                renderVotes();
+                finalResultsOverlay.style.display = 'none';
             }
         });
         
